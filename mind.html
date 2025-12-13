@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI疗愈</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        
+        .header h1 {
+            color: #3c7bbe;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7d8b98;
+            font-size: 16px;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            position: relative;
+            font-size: 15px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            background-color: #f1f5f9;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background-color: #3c7bbe;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #e0e6ed;
+            background: #f9fafb;
+        }
+        
+        .chat-input textarea {
+            flex: 1;
+            border: 1px solid #e0e6ed;
+            border-radius: 20px;
+            padding: 12px 15px;
+            resize: none;
+            font-size: 15px;
+            height: 50px;
+            max-height: 150px;
+            transition: border 0.3s;
+        }
+        
+        .chat-input textarea:focus {
+            outline: none;
+            border-color: #3c7bbe;
+        }
+        
+        .send-btn {
+            margin-left: 10px;
+            background: #3c7bbe;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .send-btn:hover {
+            background: #2a5b8f;
+        }
+        
+        .mbti-btn {
+            margin-left: 10px;
+            background: #5cb85c; /* Green color for distinction */
+            color: white;
+            border: none;
+            padding: 0 15px; /* Adjust padding for text */
+            height: 50px;
+            border-radius: 20px; /* Match textarea/send-button style */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px; /* Adjust font size */
+        }
+        
+        .mbti-btn:hover {
+            background: #4cae4c; /* Darker green on hover */
+        }
+        
+        .sas-btn {
+            margin-left: 10px;
+            background: #ff9800; /* Orange color for distinction */
+            color: white;
+            border: none;
+            padding: 0 15px;
+            height: 50px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        
+        .sas-btn:hover {
+            background: #f57c00; /* Darker orange on hover */
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            font-size: 14px;
+            color: #7d8b98;
+            margin-top: 20px;
+        }
+
+        /* 报告按钮样式 */
+        .report-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #3c7bbe;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .report-btn:hover {
+            background: #2a5b8f;
+            transform: translateY(-2px);
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+        }
+
+        .modal-content {
+            position: relative;
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .report-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .report-card h3 {
+            color: #3c7bbe;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .report-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .hospital-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #3c7bbe;
+            text-decoration: none;
+        }
+
+        .hospital-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI疗愈</h1>
+            <p>您的智能对话伙伴，随时倾听，给予支持</p >
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    您好，我是您的AI疗愈助手。有什么想和我分享或者需要帮助的吗？
+                    <div class="message-time">14:30</div>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <textarea id="userInput" placeholder="在这里输入您的想法或感受..."></textarea>
+                <button class="send-btn" id="sendButton">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+                <button class="mbti-btn" id="mbtiButton">mbti判断</button>
+                <button class="sas-btn" id="sasButton">焦虑自评</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>AI疗愈 © 2025 | 注意：这不是专业的心理治疗，如有严重心理健康问题，请咨询专业人士</p >
+        </div>
+    </div>
+    
+    <!-- 添加报告按钮 -->
+    <button class="report-btn" id="reportBtn">生成咨询报告</button>
+
+    <!-- 添加弹窗 -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h2 style="color: #3c7bbe; margin-bottom: 20px;">心理咨询报告</h2>
+            <div class="report-grid">
+                <div class="report-card">
+                    <h3>用户画像</h3>
+                    <p>根据对话分析，您是一位注重自我成长的用户。您经常关注自己的情绪状态，并愿意寻求帮助和支持。</p>
+                </div>
+                <div class="report-card">
+                    <h3>心理状态评估</h3>
+                    <p>目前您的心理状态总体平稳，但存在一定的压力。建议适当放松，保持规律作息，多进行户外活动。</p>
+                </div>
+                <div class="report-card">
+                    <h3>情感分析</h3>
+                    <p>您的情感表达较为丰富，能够清晰地描述自己的感受。在压力管理方面还有提升空间。</p>
+                </div>
+                <div class="report-card">
+                    <h3>专业建议</h3>
+                    <p>建议您定期进行心理咨询，保持积极乐观的心态。如需专业帮助，可以联系以下医院：</p>
+                    <a href="https://www.xinli001.com/" target="_blank" class="hospital-link">壹心理 - 专业心理咨询平台</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // !! 安全警告: 不要在生产环境中直接暴露 API Key !!
+        const DEEPSEEK_API_KEY = 'sk-81ddae2501354967acd07fe6271203c1';
+        const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'; // 请确认 API 地址
+
+        const mbtiScenariosData = [
+    {
+      "id": "social_and_energy_scenario_1",
+      "name": "社交与精力情景",
+      "description": "这组问题旨在了解您在社交互动中如何获取和消耗精力。",
+      "questions": [
+        {
+          "q_id": "se_q1",
+          "text": "想象一下，一个忙碌的工作周结束后，您感到有些疲惫。您是更倾向于参加一个朋友的聚会，通过和大家交流来放松和恢复精力，还是更喜欢独自在家，安静地做自己喜欢的事情来充电？请分享您的选择和原因。",
+          "mbti_aspect": "E_vs_I"
+        },
+        {
+          "q_id": "se_q2",
+          "text": "当您需要解决一个复杂问题时，您是更喜欢和团队成员一起讨论、头脑风暴，从不同的观点中获得启发，还是更倾向于自己独立思考，深入钻研？为什么？",
+          "mbti_aspect": "E_vs_I, T_vs_F"
+        },
+        {
+          "q_id": "se_q3",
+          "text": "在和不太熟悉的人交流时，您通常是能很快找到话题并主动开启对话，还是更喜欢先听对方说，慢慢加入讨论？",
+          "mbti_aspect": "E_vs_I"
+        },
+        {
+          "q_id": "se_q4",
+          "text": "如果有一个机会去一个全新的环境，认识一群新朋友，您会感到兴奋和期待，还是会有些犹豫和不安？",
+          "mbti_aspect": "E_vs_I, J_vs_P"
+        }
+      ]
+    },
+    {
+      "id": "information_gathering_scenario_2",
+      "name": "信息收集情景",
+      "description": "这组问题关注您如何感知和处理信息。",
+      "questions": [
+        {
+          "q_id": "ig_q1",
+          "text": "当您接触到一个全新的事物或概念时，您是更倾向于关注它的具体细节、实际用途和现状，还是更喜欢去理解它的整体规律、发展趋势和潜在意义？请举例说明。",
+          "mbti_aspect": "S_vs_N"
+        },
+        {
+          "q_id": "ig_q2",
+          "text": "在阅读一份报告或文章时，您是更容易注意到其中的事实、数据和具体的例子，还是更容易看到作者的观点、文章的结构和潜在的含义？",
+          "mbti_aspect": "S_vs_N"
+        },
+        {
+          "q_id": "ig_q3",
+          "text": "谈到未来，您是更倾向于基于当前已有的信息和经验来预测和规划，还是更喜欢畅想各种可能性，即使它们目前看起来不太现实？",
+          "mbti_aspect": "S_vs_N"
+        },
+        {
+          "q_id": "ig_q4",
+          "text": "您在描述一件事情时，是更喜欢按照事情发生的先后顺序，详细描述每一个环节，还是更喜欢跳跃式地讲述，抓住重点和核心思想？",
+          "mbti_aspect": "S_vs_N, J_vs_P"
+        }
+      ]
+    },
+    {
+      "id": "decision_making_scenario_3",
+      "name": "决策与判断情景",
+      "description": "这组问题旨在了解您在做决定和评价事物时更看重什么。",
+      "questions": [
+        {
+          "q_id": "dm_q1",
+          "text": "当您需要做一个重要决定时，您是更倾向于依赖逻辑分析、权衡利弊、追求客观和公平，还是更倾向于考虑自己的价值观、对他人的影响以及是否符合您的感受？请描述一个您最近做重要决定的过程。",
+          "mbti_aspect": "T_vs_F"
+        },
+        {
+          "q_id": "dm_q2",
+          "text": "在评价一个观点或行为时，您是更容易指出其逻辑上的不足或事实错误，还是更容易关注它是否合理、是否符合您的价值观或是否考虑了人情？",
+          "mbti_aspect": "T_vs_F"
+        },
+        {
+          "q_id": "dm_q3",
+          "text": "当您和别人意见不一致时，您是更倾向于直接表达自己的观点，通过辩论来说服对方，还是更倾向于寻找共同点，试图理解对方的感受，维护和谐的关系？",
+          "mbti_aspect": "T_vs_F, E_vs_I"
+        },
+        {
+          "q_id": "dm_q4",
+          "text": "如果您的朋友遇到了一个难题，向您寻求建议。您是更倾向于帮助他们分析问题、提供解决方案，还是更倾向于倾听他们的感受，给予情感上的支持？",
+          "mbti_aspect": "T_vs_F"
+        },
+        {
+          "q_id": "dm_q5",
+          "text": "在做决定后，您是会感到事情尘埃落定，可以继续前进了，还是会继续思考是否有其他更好的选择？",
+          "mbti_aspect": "J_vs_P"
+        }
+      ]
+    },
+    {
+      "id": "lifestyle_and_planning_scenario_4",
+      "name": "生活方式与规划情景",
+      "description": "这组问题探索您在处理日常事务和应对变化时的偏好。",
+      "questions": [
+        {
+          "q_id": "lp_q1",
+          "text": "在开始一个项目或任务时，您是更喜欢先制定一个详细的计划和时间表，然后按部就班地执行，还是更喜欢先大致确定方向，然后在过程中根据情况灵活调整？",
+          "mbti_aspect": "J_vs_P"
+        },
+        {
+          "q_id": "lp_q2",
+          "text": "您对突发情况或计划外的变化通常持什么态度？是感到不安和不适，还是觉得这是一种挑战或机会？",
+          "mbti_aspect": "J_vs_P"
+        },
+        {
+          "q_id": "lp_q3",
+          "text": "在日常生活中，您是更喜欢把事情安排得井井有条，提前做好准备，还是更喜欢保持弹性，根据当下的心情和情况来决定做什么？",
+          "mbti_aspect": "J_vs_P"
+        },
+        {
+          "q_id": "lp_q4",
+          "text": "当您完成一个项目或任务时，您是会感到很满意，喜欢把事情彻底完成并告一段落，还是即使完成了，也会觉得还有改进的空间，或者对新的可能性保持开放？",
+          "mbti_aspect": "J_vs_P, S_vs_N"
+        }
+      ]
+    },
+    {
+      "id": "mixed_preference_scenario_5",
+      "name": "混合偏好情景",
+      "description": "这组问题结合了不同维度，提供更全面的视角。",
+      "questions": [
+        {
+          "q_id": "mp_q1",
+          "text": "当您感到压力时，您是更倾向于通过和朋友倾诉、寻求外部支持来缓解，还是更倾向于自己一个人静静地思考、分析原因并寻找内在的解决方案？",
+          "mbti_aspect": "E_vs_I, T_vs_F"
+        },
+        {
+          "q_id": "mp_q2",
+          "text": "在学习新技能时，您是更喜欢通过实践操作、摸索经验来掌握，还是更喜欢先理解背后的原理和理论，然后进行系统学习？",
+          "mbti_aspect": "S_vs_N"
+        },
+        {
+          "q_id": "mp_q3",
+          "text": "如果有一个机会参与一个全新的、充满不确定性的项目，您会感到兴奋并跃跃欲试，还是会感到犹豫，更喜欢选择那些有明确目标和计划的项目？",
+          "mbti_aspect": "S_vs_N, J_vs_P"
+        },
+        {
+          "q_id": "mp_q4",
+          "text": "您认为自己在做决定时，是更偏向于快速做出判断并执行，还是更偏向于花时间收集信息、考虑各种可能性后再做决定？",
+          "mbti_aspect": "J_vs_P, S_vs_N"
+        },
+        {
+          "q_id": "mp_q5",
+          "text": "在与他人合作时，您是更倾向于关注任务的逻辑和效率，确保按时完成，还是更倾向于关注团队成员的感受和协作氛围，确保大家都能舒适地工作？",
+          "mbti_aspect": "T_vs_F, E_vs_I"
+        }
+      ]
+    }
+  ];
+
+        let isMbtiTestActive = false;
+        let currentMbtiScenarioIndex = 0;
+        let currentMbtiQuestionIndex = 0;
+        let mbtiScores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+        let currentMbtiQuestionText = "";
+        let currentMbtiAspect = "";
+        let allMbtiQuestions = [];
+
+
+        // --- API 调用函数 ---
+        async function callDeepSeekAPI(promptContent, history = [], requestType = 'chat', mbtiSystemPrompt = '') {
+            let messages = [];
+            let systemContent = '';
+    
+            // 1. 添加系统提示，指导 AI 风格和角色
+            if (requestType === 'mbti_analysis') {
+                systemContent = mbtiSystemPrompt; // Use the specific system prompt for MBTI analysis
+            } else if (requestType === 'chat') {
+                 systemContent = `你是一个富有同情心、支持性、非评判性的AI心理疗愈助手。
+    你的核心职责是：
+    1. 专注倾听用户的想法、感受和经历。
+    2. 提供情绪上的支持和理解，让用户感到被接纳。
+    3. 帮助用户探索和澄清他们的感受，但不进行诊断。
+    4. 提供积极的、建设性的、非专业的应对机制或思考角度。
+    5. 始终保持温暖、耐心、理解、尊重和鼓励的沟通风格。
+    6. 使用共情性的语言，例如"我理解你感到..."、"这听起来很不容易"、"你做得很好"等。
+    7. **重要提醒：** 你不是专业的心理医生或治疗师，不能提供医疗建议或进行诊断。对于严重的心理困扰或危机，请明确建议用户寻求专业的心理健康帮助，并可以提供相关资源的引导（如你代码中的链接）。
+    8. 避免评判用户的任何观点或行为。
+    9. 避免生成任何可能有害、危险、 适当或与心理健康支持无关的内容。
+    10. 回复应以支持和疗愈为核心，简洁明了，避免冗长或过于复杂的专业术语。`;
+            } else if (requestType === 'report') {
+                 systemContent = `你是一位专业的心理分析辅助AI。你的任务是根据提供的用户与AI疗愈助手的对话记录，生成一份结构化的、客观的心理咨询报告。报告应包含用户画像、心理状态评估、情感分析和专业建议（非诊断性）。请保持语言的专业性和客观性。`;
+            }
+            if (systemContent) {
+                messages.push({ role: 'system', content: systemContent });
+            }
+    
+            // 2. 添加历史记录 (如果提供 and not mbti_analysis for the core logic)
+            // For mbti_analysis, the system prompt already includes the specific question and user's answer context.
+            // However, a little bit of recent history might still provide conversational context for the AI's tone.
+            if (history.length > 0 && requestType !== 'mbti_analysis') { // Or decide if mbti_analysis also needs full history
+                const recentHistory = history.slice(-10); // Limit history for brevity
+                messages = messages.concat(recentHistory);
+            } else if (history.length > 0 && requestType === 'mbti_analysis') {
+                 // For mbti_analysis, maybe only add the last user message (which is the answer)
+                 // and the last bot message (which was the question) if not already in system prompt.
+                 // The current systemPromptForMbti is designed to be self-contained with question & answer.
+                 // Let's add recent history for conversational flow.
+                const recentHistory = history.slice(-4); // Last couple of exchanges
+                messages = messages.concat(recentHistory);
+            }
+    
+            // 3. 添加当前用户提示
+            // For MBTI analysis, promptContent is the user's raw answer. The system prompt frames it.
+            // For chat/report, promptContent is the direct user input or the constructed report request.
+            messages.push({ role: 'user', content: promptContent });
+    
+            try {
+                const response = await fetch(DEEPSEEK_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                    model: "deepseek-chat", // 或其他模型
+                    messages: messages,
+                    temperature: 0.5, // 示例值，根据测试调整
+                    top_p: 0.9, // 示例值，根据测试调整
+                    frequency_penalty: 0.5, // 示例值，根据测试调整
+                    // max_tokens: 150, // (可选) 限制最大回复长度，但可能截断回复，谨慎使用
+                    stream: false // 确保不是流式输出，以便一次性获取完整回复
+                })
+                });
+    
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error('API request failed:', response.status, errorBody);
+                    return `抱歉，请求处理失败 (${response.status})。请稍后再试。`;
+                }
+    
+                const data = await response.json();
+    
+                if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+                     return data.choices[0].message.content.trim();
+                } else {
+                     console.error('Unexpected API response format:', data);
+                     return "抱歉，AI 回复格式无法识别。";
+                }
+    
+            } catch (error) {
+                console.error('Error calling DeepSeek API:', error);
+                return "抱歉，连接 AI 服务时出错。请检查网络连接。";
+            }
+        }
+    
+        // --- DOMContentLoaded 事件监听 ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chatMessages');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+            const reportBtn = document.getElementById('reportBtn');
+            const reportModal = document.getElementById('reportModal');
+            const closeModal = document.getElementById('closeModal');
+            const reportGrid = reportModal.querySelector('.report-grid'); // 获取报告内容区域
+            const mbtiButton = document.getElementById('mbtiButton'); 
+    
+            let conversationHistory = []; // 存储聊天记录 [{role: 'user'/'assistant', content: '...'}, ...]
+
+            // Flatten all questions from scenariosData for easier iteration
+            function initializeMbtiQuestions() {
+                allMbtiQuestions = [];
+                mbtiScenariosData.forEach(scenario => {
+                    scenario.questions.forEach(question => {
+                        allMbtiQuestions.push(question);
+                    });
+                });
+            }
+            initializeMbtiQuestions(); // Call it once to populate
+    
+            // --- 添加消息到聊天界面并记录历史 ---
+            function addMessage(message, type) {
+                const messageDiv = document.createElement('div');
+                // 对 'bot-thinking' 使用 'bot-message' 的样式，但添加一个特定类用于移除
+                const displayType = type === 'bot-thinking' ? 'bot' : type;
+                messageDiv.className = `message ${displayType}-message`;
+                if (type === 'bot-thinking') {
+                    messageDiv.classList.add('thinking-indicator'); // 添加特定类
+                }
+    
+                const messageContent = document.createElement('div');
+                messageContent.textContent = message;
+                messageDiv.appendChild(messageContent);
+    
+                // 记录用户和有效机器人回复到历史记录
+                if (type === 'user' || type === 'bot') {
+                    conversationHistory.push({ role: type === 'user' ? 'user' : 'assistant', content: message });
+                }
+    
+                // 对 'bot-thinking' 类型不添加时间戳
+                if (type !== 'bot-thinking') {
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+                    timeDiv.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    messageDiv.appendChild(timeDiv);
+                }
+    
+                chatMessages.appendChild(messageDiv);
+                // 滚动到底部
+                setTimeout(() => chatMessages.scrollTop = chatMessages.scrollHeight, 0);
+            }
+    
+            // --- 发送聊天消息 ---
+            async function sendChatMessage() { // 重命名以区分报告生成
+                const userMessage = userInput.value.trim();
+                if (userMessage === '') return;
+    
+                addMessage(userMessage, 'user');
+                userInput.value = '';
+                userInput.style.height = 'auto';
+    
+                // 显示"思考中"提示
+                addMessage("AI 正在安慰宝子...", 'bot-thinking'); // Default thinking message
+    
+                try {
+                    let botResponse;
+                    if (isMbtiTestActive) {
+                        // Handle MBTI test response
+                        const thinkingMessage = chatMessages.querySelector('.thinking-indicator');
+                        if(thinkingMessage) thinkingMessage.textContent = "AI 正在分析您的MBTI倾向...";
+
+                        const systemPromptForMbti = `你正在主持一个MBTI性格测试。
+当前问题是："${currentMbtiQuestionText}" (考察维度: ${currentMbtiAspect})
+用户的回答是："${userMessage}"
+
+请仔细分析用户的回答。你的回复必须包含对用户倾向的明确判断。
+例如，如果问题考察 E vs I，且用户倾向 I，你的回复中必须包含诸如"根据您的回答，您在这个方面更倾向于内向（I）。"或"听起来您更偏向I。"这样的明确表述。
+如果问题考察多个维度 (例如 "E_vs_I, T_vs_F")，请分别指出每个维度的倾向。例如："针对E/I方面，您更倾向于E。针对T/F方面，您更倾向于F。"
+在做出倾向判断后，你可以进行简短的自然对话。我之后会提出下一个问题。`;
+                        
+                        // For MBTI, history is less relevant for this specific analytical call, 
+                        // but we pass conversationHistory for context if AI uses it.
+                        // The main prompt is the user's answer to a specific question.
+                        // The 'promptContent' for callDeepSeekAPI in MBTI mode is actually a combination
+                        // of the user's answer and the context of the question, handled by the system prompt.
+                        botResponse = await callDeepSeekAPI(userMessage, conversationHistory, 'mbti_analysis', systemPromptForMbti);
+                        
+                        // 移除"思考中"提示
+                        const thinkingIndicator = chatMessages.querySelector('.thinking-indicator');
+                        if (thinkingIndicator) {
+                            chatMessages.removeChild(thinkingIndicator);
+                        }
+                        addMessage(botResponse, 'bot'); // Add AI's full response
+                        parseAndRecordMbtiTendency(botResponse, currentMbtiAspect);
+                        currentMbtiQuestionIndex++;
+                        askNextMbtiQuestion();
+
+                    } else {
+                        // Regular chat
+                        // 调用 API 获取聊天回复, 传入历史记录和请求类型 'chat'
+                        botResponse = await callDeepSeekAPI(userMessage, conversationHistory, 'chat');
+                         // 移除"思考中"提示
+                        const thinkingIndicator = chatMessages.querySelector('.thinking-indicator');
+                        if (thinkingIndicator) {
+                            chatMessages.removeChild(thinkingIndicator);
+                        }
+                        // 添加机器人回复
+                        addMessage(botResponse, 'bot');
+                    }
+    
+                } catch (error) {
+                    console.error("Error in sendChatMessage:", error);
+                    // 移除"思考中"提示
+                    const thinkingIndicator = chatMessages.querySelector('.thinking-indicator');
+                    if (thinkingIndicator) {
+                        chatMessages.removeChild(thinkingIndicator);
+                    }
+                    // 显示错误消息
+                    addMessage("抱歉，处理您的请求时发生内部错误。", 'bot');
+                }
+            }
+
+            function parseAndRecordMbtiTendency(responseText, aspect) {
+                const aspects = aspect.split(',').map(s => s.trim()); // e.g., ["E_vs_I", "T_vs_F"]
+                const upperResponse = responseText.toUpperCase();
+
+                aspects.forEach(pair => {
+                    const [pole1, pole2] = pair.split('_vs_'); // e.g., pole1="E", pole2="I"
+                    
+                    // Attempt to find explicit mentions like "倾向于 E", "更偏向 I", "(E)", "(I)"
+                    // This is a simplified parsing and might need refinement based on AI's typical phrasing.
+                    // Looking for the letter itself, possibly surrounded by typical phrasing.
+                    const regexPole1 = new RegExp(`倾向于${pole1}|偏向${pole1}|\\(${pole1}\\)|是${pole1}|(${pole1})型`, 'i');
+                    const regexPole2 = new RegExp(`倾向于${pole2}|偏向${pole2}|\\(${pole2}\\)|是${pole2}|(${pole2})型`, 'i');
+
+                    // More robust: check if pole1 or pole2 is mentioned with clarifying words.
+                    // Example: "您更倾向于外向（E）一些" or "表现出明显的I特质"
+                    // We need to be careful not to double count or misinterpret.
+                    // A simple heuristic: find the letter if it's clearly stated as the preference.
+
+                    let foundPole1 = false;
+                    let foundPole2 = false;
+
+                    if (upperResponse.includes(`倾向于${pole1}`) || upperResponse.includes(`偏向${pole1}`) || upperResponse.includes(`(${pole1})`)|| upperResponse.includes(` ${pole1} `)) {
+                        foundPole1 = true;
+                    }
+                    if (upperResponse.includes(`倾向于${pole2}`) || upperResponse.includes(`偏向${pole2}`) || upperResponse.includes(`(${pole2})`)|| upperResponse.includes(` ${pole2} `)) {
+                        foundPole2 = true;
+                    }
+
+                    // If AI says "更倾向于 E (外向)"
+                    if (responseText.match(new RegExp(`倾向于\\s*${pole1}\\s*\\(|倾向于\\s*${pole1}\\b`, 'i'))) foundPole1 = true;
+                    if (responseText.match(new RegExp(`倾向于\\s*${pole2}\\s*\\(|倾向于\\s*${pole2}\\b`, 'i'))) foundPole2 = true;
+
+
+                    if (foundPole1 && !foundPole2) {
+                        mbtiScores[pole1]++;
+                        console.log(`Aspect: ${pair}, Detected: ${pole1}, Scores:`, JSON.stringify(mbtiScores));
+                    } else if (foundPole2 && !foundPole1) {
+                        mbtiScores[pole2]++;
+                        console.log(`Aspect: ${pair}, Detected: ${pole2}, Scores:`, JSON.stringify(mbtiScores));
+                    } else {
+                        // Ambiguous or not found, could try more sophisticated parsing or log it
+                        console.log(`Aspect: ${pair}, Tendency not clearly parsed from: "${responseText}"`);
+                        // Fallback: Check for simple presence of the letter if AI is instructed to be very direct.
+                        // This is risky without strong AI prompt adherence.
+                        // For now, we rely on phrases like "倾向于 X"
+                    }
+                });
+            }
+
+            function startMbtiTest() {
+                isMbtiTestActive = true;
+                currentMbtiQuestionIndex = 0;
+                mbtiScores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+                // conversationHistory = []; // Optionally clear history for the test, or keep it.
+                addMessage("好的，我们来开始一次简短的MBTI性格倾向探索。我会问您一系列问题，请根据您的真实感受和想法回答。", 'bot');
+                askNextMbtiQuestion();
+            }
+
+            function askNextMbtiQuestion() {
+                if (currentMbtiQuestionIndex < allMbtiQuestions.length) {
+                    const question = allMbtiQuestions[currentMbtiQuestionIndex];
+                    currentMbtiQuestionText = question.text;
+                    currentMbtiAspect = question.mbti_aspect;
+                    // Add a slight delay to make the bot's question feel more natural after user's previous message or start.
+                    setTimeout(() => {
+                        addMessage(question.text, 'bot');
+                    }, 500);
+                } else {
+                    calculateAndShowMbtiResult();
+                }
+            }
+
+            function calculateAndShowMbtiResult() {
+                let mbtiType = '';
+                mbtiType += mbtiScores.E >= mbtiScores.I ? 'E' : 'I';
+                mbtiType += mbtiScores.S >= mbtiScores.N ? 'S' : 'N';
+                mbtiType += mbtiScores.T >= mbtiScores.F ? 'T' : 'F';
+                mbtiType += mbtiScores.J >= mbtiScores.P ? 'J' : 'P';
+
+                addMessage(`根据我们刚才的交流，您的MBTI倾向可能是：${mbtiType}。请记住，这只是一个初步的探索，更准确的评估建议进行更全面的测试或咨询专业人士。`, 'bot');
+                isMbtiTestActive = false;
+                 // Reset for next potential test
+                currentMbtiQuestionText = "";
+                currentMbtiAspect = "";
+            }
+
+    
+            // --- 生成咨询报告 ---
+            async function generateConsultationReport() {
+                console.log("generateConsultationReport function called.");
+                console.log("Current conversationHistory:", JSON.stringify(conversationHistory));
+    
+                if (conversationHistory.length < 2) { // 需要至少一次用户输入和一次AI回复
+                     alert("请先进行一些对话，然后再生成报告。");
+                     console.log("Not enough conversation history.");
+                     return;
+                }
+    
+                // 1. 显示弹窗并展示"生成中"状态
+                const reportCards = reportGrid.querySelectorAll('.report-card p');
+                reportCards.forEach(p => p.textContent = '报告生成中，请稍候...');
+                const reportLinks = reportGrid.querySelectorAll('.hospital-link');
+                reportLinks.forEach(a => a.style.display = 'none'); // 隐藏旧链接
+                reportModal.style.display = 'block';
+                console.log("Modal displayed, 'generating' message set.");
+    
+                // 2. 构建报告生成提示
+                let reportPrompt = "请根据以下用户与AI疗愈助手的对话记录，生成一份简明扼要的心理咨询报告。报告应包括：\n1. 用户画像总结 (基于对话内容推断，如主要关注点、沟通风格等)\n2. 心理状态评估 (识别主要情绪或压力来源)\n3. 情感分析概要 (总结对话中表现出的情感倾向)\n4. 专业建议 (提出1-2条具体的、可操作的建议，可以包括寻求专业帮助的提示)。\n请确保报告结构清晰，语言专业且易于理解。\n\n对话记录:\n";
+                conversationHistory.forEach(msg => {
+                     reportPrompt += `${msg.role === 'user' ? '用户' : '助手'}: ${msg.content}\n`;
+                });
+                 reportPrompt += "\n请生成报告。"; // 结束提示
+                console.log("Report prompt constructed:", reportPrompt);
+    
+                // 3. 调用 API (不传递 history，因为它已包含在 prompt 中), 请求类型 'report'
+                const reportContent = await callDeepSeekAPI(reportPrompt, [], 'report');
+                console.log("API call returned. Raw reportContent:", reportContent);
+    
+                // 4. 解析并填充报告内容
+                // **注意：** 这里的解析逻辑 *高度依赖* AI 返回报告的格式。
+                // 你需要根据 DeepSeek API 的实际输出调整解析方式。
+                // 这是一个 *假设* AI 会按数字点返回内容的示例解析：
+                try {
+                     const sections = { // 对应 report-card 的 h3 文本或你定义的 ID
+                         '用户画像总结': '暂无内容',
+                         '心理状态评估': '暂无内容',
+                         '情感分析概要': '暂无内容', // 调整了标题以匹配 prompt
+                         '专业建议': '暂无内容'
+                     };
+    
+                     // 尝试基于换行符和标题关键字分割报告内容
+                     const lines = reportContent.split('\n');
+                     let currentSection = null;
+                     lines.forEach(line => {
+                         line = line.trim();
+                         if (line.startsWith('1.') || line.toLowerCase().includes('用户画像')) {
+                             currentSection = '用户画像总结';
+                             sections[currentSection] = line.substring(line.indexOf(' ')+1).trim() + '\n';
+                         } else if (line.startsWith('2.') || line.toLowerCase().includes('心理状态')) {
+                             currentSection = '心理状态评估';
+                             sections[currentSection] = line.substring(line.indexOf(' ')+1).trim() + '\n';
+                         } else if (line.startsWith('3.') || line.toLowerCase().includes('情感分析')) {
+                             currentSection = '情感分析概要';
+                             sections[currentSection] = line.substring(line.indexOf(' ')+1).trim() + '\n';
+                         } else if (line.startsWith('4.') || line.toLowerCase().includes('专业建议')) {
+                             currentSection = '专业建议';
+                             sections[currentSection] = line.substring(line.indexOf(' ')+1).trim() + '\n';
+                         } else if (currentSection && line) {
+                             // 将后续行追加到当前部分
+                             sections[currentSection] += line + '\n';
+                         }
+                     });
+                     console.log("Attempting to parse report content. Sections object:", JSON.stringify(sections));
+    
+                    // 更新 report-card 内容
+                    reportGrid.querySelectorAll('.report-card').forEach(card => {
+                        const titleElement = card.querySelector('h3');
+                        const contentElement = card.querySelector('p');
+                        const linkElement = card.querySelector('.hospital-link');
+    
+                        if (titleElement && contentElement) {
+                            const titleText = titleElement.textContent.trim();
+                             // 尝试匹配标题，包括可能的微小差异
+                             let matchedSectionKey = null;
+                             for (const key in sections) {
+                                  if (titleText.includes(key) || key.includes(titleText)) {
+                                       matchedSectionKey = key;
+                                       break;
+                                  }
+                             }
+    
+                             if (matchedSectionKey) {
+                                 contentElement.textContent = sections[matchedSectionKey].trim() || '未能生成此部分内容。';
+                                 // 如果是建议部分，确保链接可见
+                                 if ((matchedSectionKey === '专业建议' || titleText.includes('专业建议')) && linkElement) {
+                                     linkElement.style.display = 'inline-block'; // 恢复显示链接
+                                 } else if (linkElement) {
+                                     linkElement.style.display = 'none'; // 隐藏其他部分的链接
+                                 }
+                             } else {
+                                  contentElement.textContent = '未能匹配到报告内容。';
+                                  if (linkElement) linkElement.style.display = 'none';
+                             }
+                        }
+                     });
+    
+                } catch (parseError) {
+                     console.error("Error parsing report content:", parseError);
+                     console.log("Raw report content on parse error:", reportContent);
+                     reportGrid.innerHTML = `<p>生成报告时出错或报告格式无法解析。</p><p>原始回复: ${reportContent}</p>`;
+                }
+            }
+    
+            // --- 事件监听器 ---
+            sendButton.addEventListener('click', sendChatMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+    
+            // 自动调整文本框高度
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+    
+            // 报告按钮点击
+            reportBtn.addEventListener('click', generateConsultationReport);
+    
+            // 关闭弹窗按钮
+            closeModal.addEventListener('click', function() {
+                reportModal.style.display = 'none';
+            });
+    
+            // 点击弹窗外部关闭
+            window.addEventListener('click', function(event) {
+                if (event.target === reportModal) {
+                    reportModal.style.display = 'none';
+                }
+            });
+    
+            // MBTI 按钮点击事件
+            if (mbtiButton) {
+                mbtiButton.addEventListener('click', function() {
+                    if (isMbtiTestActive) {
+                        addMessage("MBTI测试已经在进行中。如果您想重新开始，请先告诉我。", 'bot');
+                        return;
+                    }
+                    // window.open('mbti_test.html', '_blank'); // 在新标签页打开 mbti_test.html // Previous behavior
+                    startMbtiTest();
+                });
+            }
+            
+            // SAS 焦虑自评按钮点击事件
+            const sasButton = document.getElementById('sasButton');
+            if (sasButton) {
+                sasButton.addEventListener('click', function() {
+                    window.open('sas_test.html', '_blank'); // 在新标签页打开 SAS 测试页面
+                });
+            }
+            
+        });
+    </script> 
+</body>
+</html>

@@ -148,14 +148,16 @@
       display: none;
     }
 
-    body.experience-mode #mainContent {
+    body.experience-mode #mainContent,
+    body.experience-mode #extraSections {
       opacity: 1 !important;
       pointer-events: auto !important;
       display: grid !important;
     }
 
-    /* 着陆页时隐藏主内容，居中展示 */
-    body:not(.experience-mode) #mainContent {
+    /* 着陆页时隐藏主内容和底部卡片，居中展示 */
+    body:not(.experience-mode) #mainContent,
+    body:not(.experience-mode) #extraSections {
       display: none;
     }
   </style>
@@ -276,8 +278,8 @@
     </aside>
   </main>
 
-<!-- 解压游戏 & 心理社区 -->
-<section class="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6 w-full max-w-6xl mx-auto mt-6 md:mt-10">
+<!-- 解压游戏 & 心理社区（进入体验后展示） -->
+<section id="extraSections" class="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6 w-full max-w-6xl mx-auto mt-6 md:mt-10">
   <div class="bento-box flex flex-col space-y-3">
     <div class="flex items-center justify-between">
       <div>

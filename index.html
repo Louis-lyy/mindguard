@@ -243,16 +243,25 @@
         </div>
       </div>
 
-      <!-- 简易报告占位（可后续接 AI） -->
+      <!-- 塔罗牌自我探索 -->
       <div class="bento-box">
         <div class="flex justify-between items-center mb-3">
           <h2 class="text-lg font-semibold text-gray-800">
-            简要反馈 <span class="ml-1 text-xs font-light text-gray-500">SUMMARY</span>
+            塔罗牌自我探索 <span class="ml-1 text-xs font-light text-gray-500">TAROT</span>
           </h2>
-          <i class="fas fa-file-medical-alt text-purple-500 text-2xl"></i>
+          <i class="fas fa-magic text-purple-500 text-2xl"></i>
         </div>
-        <p id="summaryText" class="text-xs text-gray-600 leading-relaxed">
-          暂无自动报告。当你完成 MBTI 与 SAS 测评后，我们会在此位置给出一个简要文字说明。
+        <p class="text-xs text-gray-500 mb-3">
+          通过塔罗牌探索内心，获得关于当前状态的洞察与指引。
+        </p>
+        <div id="tarotCardDisplay" class="text-center py-3 min-h-[120px] flex flex-col items-center justify-center">
+          <p class="text-xs text-gray-400">点击下方按钮抽取一张塔罗牌</p>
+        </div>
+        <button id="tarotDrawBtn" class="btn-primary w-full bg-purple-500 hover:bg-purple-600">
+          <i class="fas fa-hand-sparkles mr-1.5"></i> 抽取塔罗牌
+        </button>
+        <p class="text-[11px] text-gray-400 mt-2">
+          塔罗牌仅供自我探索与反思，结果仅供参考，不构成任何预测或建议。
         </p>
       </div>
 
@@ -436,6 +445,70 @@
   </div>
 </div>
 
+<!-- ============ 塔罗牌自我探索模态框 ============ -->
+<div id="tarotModal"
+     class="modal fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content max-w-2xl w-full text-center">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl md:text-2xl font-bold text-purple-600">
+        塔罗牌自我探索
+      </h2>
+      <button id="tarotCloseBtn"
+              class="text-gray-400 hover:text-gray-600 text-3xl leading-none">
+        &times;
+      </button>
+    </div>
+    
+    <div id="tarotModalContent" class="space-y-4">
+      <!-- 抽取界面 -->
+      <div id="tarotDrawPanel">
+        <p class="text-sm text-gray-600 mb-4">
+          静下心来，专注于你想探索的问题或当前的状态，然后抽取一张塔罗牌。
+        </p>
+        <div class="flex items-center justify-center mb-6">
+          <div id="tarotCardBack" class="w-32 h-48 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg shadow-lg flex items-center justify-center cursor-pointer transform transition-all hover:scale-105" style="display: block;">
+            <i class="fas fa-star text-white text-4xl"></i>
+          </div>
+        </div>
+        <button id="tarotDrawModalBtn" class="btn-primary bg-purple-500 hover:bg-purple-600 px-8 py-3">
+          <i class="fas fa-hand-sparkles mr-2"></i> 抽取塔罗牌
+        </button>
+      </div>
+      
+      <!-- 结果界面 -->
+      <div id="tarotResultPanel" class="hidden">
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 mb-4">
+          <div id="tarotCardResult" class="mb-4">
+            <!-- 塔罗牌结果将显示在这里 -->
+          </div>
+        </div>
+        <div class="text-left space-y-3">
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">牌意解读</h3>
+            <p id="tarotInterpretation" class="text-sm text-gray-700 leading-relaxed"></p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">自我反思</h3>
+            <p id="tarotReflection" class="text-sm text-gray-700 leading-relaxed"></p>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button id="tarotDrawAgainBtn" class="btn-special flex-1">
+            <i class="fas fa-redo mr-2"></i> 重新抽取
+          </button>
+          <button id="tarotCloseResultBtn" class="btn-primary bg-purple-500 hover:bg-purple-600 flex-1">
+            完成
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <p class="text-[11px] text-gray-400 mt-4 text-center">
+      塔罗牌仅供自我探索与反思，结果仅供参考，不构成任何预测或建议。
+    </p>
+  </div>
+</div>
+
 <!-- ============ MindEmoji 游戏模态框 ============ -->
 <div id="mindEmojiModal"
      class="modal fixed inset-0 z-50 hidden items-center justify-center p-4">
@@ -462,28 +535,295 @@
 </div>
 
 <script>
-  // ========== 简单聊天逻辑 ==========
+  // ========== DeepSeek 接入配置 & 简单聊天逻辑 ==========
+  // 推荐：不要在前端直接放 API Key（会被任何访问页面的人看到）。
+  // 现在前端转发到本地代理：`/api/deepseek`（由 backend/server.js 代理到 DeepSeek）。
+  
+  // 自动检测后端服务地址
+  function getProxyPath() {
+    // 检查是否在本地文件系统（file://）
+    if (window.location.protocol === 'file:') {
+      return 'http://localhost:3001/api/deepseek';
+    }
+    // 如果在 HTTP 服务器上（包括 localhost），使用相对路径
+    return '/api/deepseek';
+  }
+  
+  const DEEPSEEK_PROXY_PATH = getProxyPath();
+
+  // 心理学知识库（RAG）
+  let psychologyKB = null;
+  
+  // 加载心理学知识库
+  async function loadPsychologyKB() {
+    try {
+      // 根据当前协议选择正确的路径
+      const kbPath = window.location.protocol === 'file:' 
+        ? 'http://localhost:3001/psychology_kb.json'
+        : '/psychology_kb.json';
+      
+      const response = await fetch(kbPath);
+      if (response.ok) {
+        psychologyKB = await response.json();
+        console.log('✅ 心理学知识库加载成功，包含', psychologyKB.knowledge_base.length, '个知识点');
+      } else {
+        console.warn('⚠️ 无法加载心理学知识库，将使用默认回复');
+      }
+    } catch (e) {
+      console.warn('⚠️ 加载心理学知识库失败:', e);
+    }
+  }
+  
+  // RAG 检索：根据用户问题检索相关知识
+  function retrieveRelevantKnowledge(userMessage) {
+    if (!psychologyKB || !psychologyKB.knowledge_base) {
+      return null;
+    }
+    
+    const messageLower = userMessage.toLowerCase();
+    const relevantKnowledge = [];
+    
+    // 遍历知识库，查找匹配的知识点
+    for (const item of psychologyKB.knowledge_base) {
+      // 检查关键词匹配
+      const keywordMatch = item.keywords.some(keyword => 
+        messageLower.includes(keyword.toLowerCase())
+      );
+      
+      // 检查主题匹配
+      const topicMatch = messageLower.includes(item.topic.toLowerCase());
+      
+      if (keywordMatch || topicMatch) {
+        relevantKnowledge.push({
+          topic: item.topic,
+          content: item.content,
+          relevance: keywordMatch ? 2 : 1 // 关键词匹配优先级更高
+        });
+      }
+    }
+    
+    // 按相关性排序，返回最相关的1-2条知识
+    relevantKnowledge.sort((a, b) => b.relevance - a.relevance);
+    return relevantKnowledge.slice(0, 2);
+  }
+  
+  // 页面加载时加载知识库
+  loadPsychologyKB();
+
+  async function callDeepSeek(prompt) {
+    try {
+      // RAG 检索：从心理学知识库中检索相关知识
+      const relevantKnowledge = retrieveRelevantKnowledge(prompt);
+      
+      // 构建增强的 prompt（包含检索到的知识）
+      let enhancedPrompt = prompt;
+      if (relevantKnowledge && relevantKnowledge.length > 0) {
+        const knowledgeContext = relevantKnowledge.map(k => 
+          `【${k.topic}】${k.content}`
+        ).join('\n\n');
+        enhancedPrompt = `参考以下心理学知识库内容回答用户问题：\n\n${knowledgeContext}\n\n用户问题：${prompt}\n\n请结合上述专业知识，用通俗易懂的方式回答用户，不要直接引用知识库内容，而是自然地融入回答中。`;
+      }
+      
+      // 确保使用正确的 API 路径（每次调用时重新获取，以防协议变化）
+      const apiPath = getProxyPath();
+      const resp = await fetch(apiPath, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ prompt: enhancedPrompt }),
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      // 更明确的错误提示
+      if (!resp.ok) {
+        let txt = await resp.text().catch(() => '');
+        try {
+          const j = JSON.parse(txt || '{}');
+          txt = j.error || j.message || JSON.stringify(j);
+        } catch (e) {}
+        throw new Error(`HTTP ${resp.status} ${resp.statusText} ${txt}`);
+      }
+
+      const json = await resp.json();
+      // 尽量兼容不同返回结构
+      let reply = '';
+      if (json.choices && json.choices.length) {
+        reply = json.choices[0].text || (json.choices[0].message && json.choices[0].message.content) || JSON.stringify(json.choices[0]);
+      } else if (json.output) {
+        reply = typeof json.output === 'string' ? json.output : JSON.stringify(json.output);
+      } else if (json.result) {
+        reply = typeof json.result === 'string' ? json.result : JSON.stringify(json.result);
+      } else if (json.data && json.data.length) {
+        reply = json.data[0].text || JSON.stringify(json.data[0]);
+      } else if (typeof json === 'string') {
+        reply = json;
+      } else {
+        reply = JSON.stringify(json);
+      }
+      
+      // 返回回复和知识来源
+      return {
+        reply: reply,
+        sources: relevantKnowledge && relevantKnowledge.length > 0 
+          ? relevantKnowledge.map(k => k.topic) 
+          : null
+      };
+    } catch (e) {
+      console.error('DeepSeek 请求出错', e);
+      throw e;
+    }
+  }
   const chatMessages = document.getElementById('chatMessages');
   const userInput = document.getElementById('userInput');
   const sendBtn = document.getElementById('sendBtn');
   const landingSection = document.getElementById('landingSection');
 
+  // 移除 Markdown 格式标记的辅助函数
+  function removeMarkdownFormatting(text) {
+    if (typeof text !== 'string') return text;
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // 移除 **加粗**
+      .replace(/\*(.*?)\*/g, '$1')      // 移除 *斜体*
+      .replace(/__(.*?)__/g, '$1')      // 移除 __加粗__
+      .replace(/_(.*?)_/g, '$1')       // 移除 _斜体_
+      .replace(/~~(.*?)~~/g, '$1')      // 移除 ~~删除线~~
+      .replace(/`(.*?)`/g, '$1')       // 移除 `代码`
+      .replace(/```[\s\S]*?```/g, '')   // 移除 ```代码块```
+      .replace(/#{1,6}\s*(.*?)$/gm, '$1') // 移除标题标记
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')  // 移除链接，保留文本
+      .replace(/^\s*[-*+]\s+/gm, '')   // 移除列表标记
+      .replace(/^\s*\d+\.\s+/gm, '')   // 移除有序列表标记
+      .trim();
+  }
+
+  // 在回复中添加来源信息
+  function addSourcesToReply(reply, sources) {
+    if (!sources || sources.length === 0) {
+      return reply;
+    }
+    
+    // 检测回复中是否包含建议、方法相关的关键词
+    const suggestionKeywords = /(建议|方法|可以|试试|尝试|步骤|技巧|策略|方式|办法|练习|操作|调节|缓解|改善|处理|试试|尝试)/;
+    const hasSuggestions = suggestionKeywords.test(reply);
+    
+    if (hasSuggestions) {
+      // 尝试在"可操作建议"部分之后添加来源
+      // 查找"可操作建议"或类似标记
+      const suggestionPattern = /(可操作建议|具体建议|建议如下|方法如下|可以尝试|可以试试|以下方法|以下建议|调节方法|缓解方法)[：:]\s*/;
+      const match = reply.match(suggestionPattern);
+      
+      if (match) {
+        // 找到建议部分标记，在其后查找建议内容的结束位置
+        const startPos = match.index + match[0].length;
+        const afterSuggestion = reply.substring(startPos);
+        
+        // 查找建议部分的结束（通常是"轻量追问"或类似内容）
+        const endPattern = /(轻量追问|追问|问题|希望|如果|另外|同时|最后|总结)/;
+        const endMatch = afterSuggestion.match(endPattern);
+        
+        let insertPos = reply.length;
+        if (endMatch) {
+          // 在追问部分之前插入来源
+          insertPos = startPos + endMatch.index;
+        } else {
+          // 如果没找到追问部分，在建议内容之后插入（查找数字列表或换行）
+          const listEnd = afterSuggestion.match(/\n\n|\n(追问|问题|希望)/);
+          if (listEnd) {
+            insertPos = startPos + listEnd.index;
+          } else {
+            // 默认在建议部分之后插入
+            insertPos = startPos + Math.min(afterSuggestion.length, 200); // 最多200字符后
+          }
+        }
+        
+        const sourceText = `\n\n📚 参考来源：${sources.join('、')}`;
+        return reply.slice(0, insertPos) + sourceText + reply.slice(insertPos);
+      } else {
+        // 没找到明确的建议标记，在回复末尾添加来源
+        const sourceText = `\n\n📚 参考来源：${sources.join('、')}`;
+        return reply + sourceText;
+      }
+    } else {
+      // 即使没有明显的建议关键词，如果有来源也在末尾添加
+      const sourceText = `\n\n📚 参考来源：${sources.join('、')}`;
+      return reply + sourceText;
+    }
+  }
+
   function addMessage(text, from = 'bot') {
     const div = document.createElement('div');
     div.classList.add('message', from === 'bot' ? 'bot-message' : 'user-message');
-    div.textContent = text;
+    // 如果是 bot 消息，移除 Markdown 格式标记
+    const cleanText = from === 'bot' ? removeMarkdownFormatting(text) : text;
+    div.textContent = cleanText;
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div; // 返回元素，便于更新（例如加载完毕时替换内容）
   }
 
-  function handleSend() {
+  async function handleSend() {
     const text = userInput.value.trim();
     if (!text) return;
+    
+    // 禁用输入和按钮，防止重复提交
+    userInput.disabled = true;
+    sendBtn.disabled = true;
+    
     addMessage(text, 'user');
     userInput.value = '';
-    setTimeout(() => {
-      addMessage('我听到了你的分享。虽然这里还没有接入真正的大模型，但你可以先用 MBTI 与 SAS 测评来了解自己。', 'bot');
-    }, 600);
+
+    const loading = addMessage('正在生成回复...', 'bot');
+    try {
+      const result = await callDeepSeek(text);
+      // 处理返回结果（可能是对象或字符串，兼容旧格式）
+      let reply = typeof result === 'object' && result.reply ? result.reply : result;
+      let sources = typeof result === 'object' && result.sources ? result.sources : null;
+      
+      // 移除 Markdown 格式标记，只显示纯文本
+      let cleanReply = removeMarkdownFormatting(reply);
+      
+      // 如果有来源，在建议/方法部分添加来源信息
+      if (sources && sources.length > 0) {
+        cleanReply = addSourcesToReply(cleanReply, sources);
+      }
+      
+      loading.textContent = cleanReply;
+    } catch (e) {
+      let errorMsg = '回复失败（请检查 API 配置与网络）。';
+      
+      // 尝试从响应中获取更详细的错误信息
+      try {
+        const responseText = e.message || '';
+        if (responseText.includes('API Key 未配置') || responseText.includes('占位符')) {
+          errorMsg = 'API Key 未配置：请在 backend/.env 文件中设置真实的 DEEPSEEK_API_KEY。';
+        } else if (responseText.includes('API Key 无效') || responseText.includes('401')) {
+          errorMsg = 'API Key 无效或已过期，请检查 backend/.env 文件中的配置。';
+        } else if (responseText.includes('API Key 格式错误')) {
+          errorMsg = 'API Key 格式错误，请检查 backend/.env 文件中的配置。';
+        } else if (e.message && e.message.includes('401')) {
+          errorMsg = 'API Key 无效，请检查后端配置。';
+        } else if (e.message && e.message.includes('429')) {
+          errorMsg = '请求过于频繁，请稍后再试。';
+        } else if (e.message && (e.message.includes('500') || e.message.includes('502'))) {
+          errorMsg = '服务器错误，请检查后端服务是否正常运行。';
+        } else if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
+          errorMsg = '网络连接失败，请检查后端服务是否启动（http://localhost:3001）。';
+        }
+      } catch (parseErr) {
+        // 如果解析失败，使用默认错误信息
+      }
+      
+      loading.textContent = errorMsg;
+      console.error('详细错误：', e);
+    } finally {
+      // 恢复输入和按钮
+      userInput.disabled = false;
+      sendBtn.disabled = false;
+      userInput.focus();
+    }
   }
 
   sendBtn.addEventListener('click', handleSend);
@@ -681,7 +1021,6 @@
   const mbtiProgressBar = document.getElementById('mbtiProgressBar');
   const mbtiProgressLabel = document.getElementById('mbtiProgressLabel');
   const mbtiTypeDisplay = document.getElementById('mbtiTypeDisplay');
-  const summaryText = document.getElementById('summaryText');
   const mbtiQuestionPanel = document.getElementById('mbtiQuestionPanel');
   const mbtiResultPanel = document.getElementById('mbtiResultPanel');
   const mbtiResultTypeLabel = document.getElementById('mbtiResultTypeLabel');
@@ -899,8 +1238,6 @@
     mbtiResultSocial.textContent = insights.social;
     mbtiResultText.textContent = '';
     mbtiTypeDisplay.textContent = type;
-    summaryText.textContent =
-      `你的 MBTI 倾向为 ${type}${mbtiMode === 'full' ? '（完整版 90 题）' : '（快速版 22 题）'}。`;
 
     mbtiQuestionPanel.classList.add('hidden');
     mbtiResultPanel.classList.remove('hidden');
@@ -1090,9 +1427,6 @@
       `标准分：<span class="font-semibold text-orange-500">${standardScore}</span>（原始分：${rawScore}）<br>` +
       `焦虑水平：<span class="font-semibold">${level}</span>。${advice}`;
 
-    summaryText.textContent =
-      `你已完成 SAS 焦虑自评，标准分约为 ${standardScore} 分，属于「${level}」。请将结果视为提醒，而不是标签，必要时及时寻求专业帮助。`;
-
     addMessage(`你的 SAS 标准分为 ${standardScore}，焦虑水平大致为「${level}」。请善待自己的情绪，也可以考虑和专业人士聊一聊。`, 'bot');
   }
 
@@ -1104,6 +1438,224 @@
   sasNextBtn.addEventListener('click', () => goSas(1));
   sasPrevBtn.addEventListener('click', () => goSas(-1));
   sasSubmitBtn.addEventListener('click', submitSasTest);
+
+  // ========== 塔罗牌自我探索 ==========
+  const tarotCards = [
+    {
+      name: '愚者',
+      emoji: '🃏',
+      interpretation: '代表新的开始、冒险精神和纯真。你正站在人生的新起点，充满无限可能。',
+      reflection: '思考：你是否准备好拥抱新的变化？是否愿意放下过去的包袱，以开放的心态迎接未来？'
+    },
+    {
+      name: '魔术师',
+      emoji: '🎩',
+      interpretation: '象征行动力、创造力和意志力。你拥有将想法转化为现实的能力。',
+      reflection: '思考：你有哪些想法等待实现？如何运用你的技能和资源来创造改变？'
+    },
+    {
+      name: '女祭司',
+      emoji: '🌙',
+      interpretation: '代表直觉、内在智慧和潜意识。现在是倾听内心声音的时候。',
+      reflection: '思考：你是否忽略了内心的直觉？静下心来，你能听到什么指引？'
+    },
+    {
+      name: '皇后',
+      emoji: '👑',
+      interpretation: '象征丰盛、母性和创造力。你拥有滋养自己和他人的能力。',
+      reflection: '思考：你如何照顾自己的需求？如何创造更丰盛、更美好的生活？'
+    },
+    {
+      name: '皇帝',
+      emoji: '⚔️',
+      interpretation: '代表秩序、权威和稳定。你需要建立清晰的边界和规则。',
+      reflection: '思考：你的生活中哪些方面需要更多的结构和秩序？如何建立健康的边界？'
+    },
+    {
+      name: '教皇',
+      emoji: '📿',
+      interpretation: '象征传统、学习和精神指引。寻求导师或遵循既有的智慧。',
+      reflection: '思考：你从哪些传统或导师那里学到了什么？如何将这些智慧应用到生活中？'
+    },
+    {
+      name: '恋人',
+      emoji: '💕',
+      interpretation: '代表选择、关系和价值观的整合。你面临重要的选择。',
+      reflection: '思考：你当前面临什么选择？你的价值观是什么？如何做出符合内心的决定？'
+    },
+    {
+      name: '战车',
+      emoji: '🏇',
+      interpretation: '象征意志力、决心和胜利。你有能力克服障碍，达成目标。',
+      reflection: '思考：你正在为什么目标而努力？如何保持专注和决心，不被外界干扰？'
+    },
+    {
+      name: '力量',
+      emoji: '🦁',
+      interpretation: '代表内在力量、耐心和温柔的控制。真正的力量来自内心。',
+      reflection: '思考：你如何运用内在的力量？在面对挑战时，如何保持耐心和温柔？'
+    },
+    {
+      name: '隐者',
+      emoji: '🔦',
+      interpretation: '象征内省、寻求真理和独处。现在是深入思考、寻找答案的时候。',
+      reflection: '思考：你最近是否给自己足够的独处时间？你正在寻找什么答案？'
+    },
+    {
+      name: '命运之轮',
+      emoji: '🎡',
+      interpretation: '代表变化、周期和命运。生活正在经历重要的转折。',
+      reflection: '思考：你如何看待生活中的变化？如何顺应自然的节奏，接受命运的流转？'
+    },
+    {
+      name: '正义',
+      emoji: '⚖️',
+      interpretation: '象征平衡、公平和责任。你需要做出公正的决定，承担相应的责任。',
+      reflection: '思考：你的生活中哪些方面需要平衡？如何做出公正的决定？'
+    },
+    {
+      name: '倒吊人',
+      emoji: '🙃',
+      interpretation: '代表等待、牺牲和新的视角。有时候，暂停和等待是必要的。',
+      reflection: '思考：你是否需要停下来，换个角度看问题？等待中你能学到什么？'
+    },
+    {
+      name: '死神',
+      emoji: '💀',
+      interpretation: '象征结束、转变和重生。旧的必须结束，新的才能开始。',
+      reflection: '思考：你的生活中有什么需要结束？如何优雅地告别过去，迎接新生？'
+    },
+    {
+      name: '节制',
+      emoji: '🍷',
+      interpretation: '代表平衡、调和和耐心。找到生活的平衡点，避免极端。',
+      reflection: '思考：你的生活中哪些方面需要平衡？如何调和不同的需求和欲望？'
+    },
+    {
+      name: '恶魔',
+      emoji: '😈',
+      interpretation: '象征束缚、欲望和依赖。你可能被某些习惯或模式所困。',
+      reflection: '思考：什么在束缚你？如何打破这些限制，获得真正的自由？'
+    },
+    {
+      name: '塔',
+      emoji: '🗼',
+      interpretation: '代表突然的变化、启示和解放。旧的结构正在崩塌，为新的建立让路。',
+      reflection: '思考：你生活中有什么需要打破？如何从突然的变化中找到成长的机会？'
+    },
+    {
+      name: '星星',
+      emoji: '⭐',
+      interpretation: '象征希望、灵感和指引。即使在黑暗中，也有光明指引你。',
+      reflection: '思考：你心中的希望是什么？如何保持对未来的信心和期待？'
+    },
+    {
+      name: '月亮',
+      emoji: '🌙',
+      interpretation: '代表恐惧、幻觉和潜意识。面对内心的恐惧，寻找真相。',
+      reflection: '思考：你内心有什么恐惧？这些恐惧是真实的，还是只是幻觉？'
+    },
+    {
+      name: '太阳',
+      emoji: '☀️',
+      interpretation: '象征快乐、成功和活力。你正经历积极、光明的时期。',
+      reflection: '思考：什么让你感到快乐和满足？如何保持这种积极的状态？'
+    },
+    {
+      name: '审判',
+      emoji: '📯',
+      interpretation: '代表反思、觉醒和重生。现在是回顾过去、做出改变的时候。',
+      reflection: '思考：你需要反思什么？如何从过去的经验中获得智慧，开始新的生活？'
+    },
+    {
+      name: '世界',
+      emoji: '🌍',
+      interpretation: '象征完成、成就和圆满。一个阶段即将完成，新的循环即将开始。',
+      reflection: '思考：你完成了什么？如何庆祝你的成就，并为新的开始做准备？'
+    }
+  ];
+
+  const tarotModal = document.getElementById('tarotModal');
+  const tarotDrawBtn = document.getElementById('tarotDrawBtn');
+  const tarotCloseBtn = document.getElementById('tarotCloseBtn');
+  const tarotDrawModalBtn = document.getElementById('tarotDrawModalBtn');
+  const tarotDrawAgainBtn = document.getElementById('tarotDrawAgainBtn');
+  const tarotCloseResultBtn = document.getElementById('tarotCloseResultBtn');
+  const tarotDrawPanel = document.getElementById('tarotDrawPanel');
+  const tarotResultPanel = document.getElementById('tarotResultPanel');
+  const tarotCardDisplay = document.getElementById('tarotCardDisplay');
+  const tarotCardResult = document.getElementById('tarotCardResult');
+  const tarotInterpretation = document.getElementById('tarotInterpretation');
+  const tarotReflection = document.getElementById('tarotReflection');
+  const tarotCardBack = document.getElementById('tarotCardBack');
+
+  function drawTarotCard() {
+    const randomIndex = Math.floor(Math.random() * tarotCards.length);
+    return tarotCards[randomIndex];
+  }
+
+  function displayTarotCard(card) {
+    // 在右侧卡片中显示
+    tarotCardDisplay.innerHTML = `
+      <div class="mb-2">
+        <div class="text-4xl mb-2">${card.emoji}</div>
+        <p class="text-lg font-semibold text-purple-600">${card.name}</p>
+      </div>
+      <p class="text-xs text-gray-600 mt-2 line-clamp-2">${card.interpretation}</p>
+    `;
+  }
+
+  function openTarotModal() {
+    tarotDrawPanel.classList.remove('hidden');
+    tarotResultPanel.classList.add('hidden');
+    tarotModal.classList.remove('hidden');
+    tarotModal.classList.add('flex');
+  }
+
+  function closeTarotModal() {
+    tarotModal.classList.add('hidden');
+    tarotModal.classList.remove('flex');
+  }
+
+  function showTarotResult(card) {
+    tarotDrawPanel.classList.add('hidden');
+    tarotResultPanel.classList.remove('hidden');
+    
+    tarotCardResult.innerHTML = `
+      <div class="inline-block">
+        <div class="text-6xl mb-3">${card.emoji}</div>
+        <p class="text-xl font-bold text-purple-600">${card.name}</p>
+      </div>
+    `;
+    
+    tarotInterpretation.textContent = card.interpretation;
+    tarotReflection.textContent = card.reflection;
+    
+    // 同时在右侧卡片中显示
+    displayTarotCard(card);
+  }
+
+  tarotDrawBtn.addEventListener('click', openTarotModal);
+  tarotCloseBtn.addEventListener('click', closeTarotModal);
+  tarotCloseResultBtn.addEventListener('click', closeTarotModal);
+  tarotModal.addEventListener('click', (e) => {
+    if (e.target === tarotModal) closeTarotModal();
+  });
+
+  tarotDrawModalBtn.addEventListener('click', () => {
+    const card = drawTarotCard();
+    // 添加翻转动画效果
+    tarotCardBack.style.transform = 'rotateY(180deg)';
+    setTimeout(() => {
+      showTarotResult(card);
+      tarotCardBack.style.transform = 'rotateY(0deg)';
+    }, 500);
+  });
+
+  tarotDrawAgainBtn.addEventListener('click', () => {
+    tarotDrawPanel.classList.remove('hidden');
+    tarotResultPanel.classList.add('hidden');
+  });
 
   // ========== MindEmoji 游戏：新窗口跳转 ==========
   relaxStartBtn.addEventListener('click', () => {
